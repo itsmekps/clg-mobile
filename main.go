@@ -42,10 +42,10 @@ func main() {
 	app.Use(cors.New(config.CORSConfig()))
 
 	// Apply Auth middleware globally
-	app.Use(middleware.AuthMiddleware())
+	// app.Use(middleware.AuthMiddleware())
 
 	// Apply Casbin middleware globally
-	app.Use(middleware.CasbinMiddleware(enforcer))
+	// app.Use(middleware.CasbinMiddleware(enforcer))
 
 	// Register a logging middleware to log incoming requests
 	app.Use(middleware.LogMiddleware())

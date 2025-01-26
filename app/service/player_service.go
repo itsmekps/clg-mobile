@@ -5,6 +5,8 @@ import (
 	"fiber-boilerplate/app/errors"
 	"fiber-boilerplate/app/models"
 	"fiber-boilerplate/app/repository/mongodb"
+
+	"go.mongodb.org/mongo-driver/bson"
 	// "log"
 )
 
@@ -19,9 +21,14 @@ func NewPlayerService(repo *mongodb.PlayerRepository) *PlayerService {
 }
 
 // User-related methods
-func (s *PlayerService) GetPlayersList(page, limit int) ([]models.PlayerList, *errors.AppError) {
+func (s *PlayerService) GetPlayersList(page, limit int) ([]models.Player, *errors.AppError) {
 
-	playerList, err := s.repo.GetPlayersList(page, limit)
+	fields := bson.M{
+		"fullname":    1,
+		"dateofbirth": 1,
+		"_id":         0, // Exclude the _id field
+	}
+	playerList, err := s.repo.FindAll(fields, page, limit)
 	if err != nil {
 		return nil, errors.INTERNAL_SERVER_ERROR
 	}
