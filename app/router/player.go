@@ -22,6 +22,9 @@ func PlayRouter(router fiber.Router) {
 		playerGroup.Get("/", playerHandler.GetPlayersList)
 
 		// get details of a player by playerID
-		// playerGroup.Get("/:id", player.GetPlayerDetails)
+		// playerGroup.Get("/:id", playerHandler.PlayerDetails)
+
+		// search player by name(string pattern match)
+		playerGroup.Get("/search", playerHandler.SearchPlayers)
 	}
 }

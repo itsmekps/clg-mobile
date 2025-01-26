@@ -19,104 +19,60 @@ func NewPlayerRepository(collection *mongo.Collection) *PlayerRepository {
 	return &PlayerRepository{collection: collection}
 }
 
-// func (r *PlayerRepository) FindAll() ([]models.Player, error) {
-//     var players []models.Player
+func (r *PlayerRepository) PlayerList(page, limit int) ([]models.PlayerList, int64, error) {
+	var players []models.PlayerList
 
-//     // Fetch all players from the MongoDB collection
-//     cursor, err := r.collection.Find(context.TODO(), bson.M{})
-//     if err != nil {
-//         return nil, err
-//     }
+	// Get the total count of documents in the collection
+	totalCount, err := r.collection.CountDocuments(context.TODO(), bson.M{})
+	if err != nil {
+		return nil, 0, err
+	}
 
-//     // Decode the results into the Player slice
-//     if err = cursor.All(context.TODO(), &players); err != nil {
-//         return nil, err
-//     }
+	// Pagination: Skip (page-1)*limit and limit to `limit` results
+	options := options.Find().
+		SetLimit(int64(limit)).
+		SetSkip(int64((page - 1) * limit))
 
-//     return players, nil
-// }
+	// Fetch data with pagination
+	cursor, err := r.collection.Find(context.TODO(), bson.M{}, options)
+	if err != nil {
+		return nil, 0, err
+	}
 
-func (r *PlayerRepository) FindAll(fields bson.M, page, limit int) ([]models.Player, error) {
-    var players []models.Player
+	if err = cursor.All(context.TODO(), &players); err != nil {
+		return nil, 0, err
+	}
 
-    // Validate page number
-    if page < 1 {
-        page = 1
-    }
-
-    // Validate limit
-    if limit < 1 {
-        limit = 10 // Default limit
-    }
-
-    // Pagination: Skip (page-1)*limit and limit to `limit` results
-    options := options.Find().
-        SetLimit(int64(limit)).
-        SetSkip(int64((page - 1) * limit))
-
-    // Add projection if fields are specified
-    if fields != nil {
-        options.SetProjection(fields)
-    }
-
-    // Fetch data with pagination and projection
-    cursor, err := r.collection.Find(context.TODO(), bson.M{}, options)
-    if err != nil {
-        return nil, err
-    }
-
-    if err = cursor.All(context.TODO(), &players); err != nil {
-        return nil, err
-    }
-
-    return players, nil
+	return players, totalCount, nil
 }
 
-// func (r *PlayerRepository) GetPlayersList(page, limit int) ([]models.PlayerList, error) {
-// 	if page <= 0 {
-// 		page = 1
-// 	}
-// 	if limit <= 0 {
-// 		limit = 20
-// 	}
+func (r *PlayerRepository) SearchPlayers(query string, limit int) ([]models.PlayerSearch, error) {
+	var players []models.PlayerSearch
 
-// 	pipeline := mongo.Pipeline{
-// 		bson.D{
-// 			{Key: "$project", Value: bson.D{
-// 				{Key: "avatar", Value: "$image_path"},
-// 				{Key: "name", Value: "$fullname"},
-// 				{Key: "country", Value: "$country_id"},
-// 				{Key: "role", Value: "$position.name"},
-// 				{Key: "updated_at", Value: "$updated_at"},
-// 			}},
-// 		},
-// 		bson.D{
-// 			{Key: "$sort", Value: bson.D{
-// 				{Key: "updated_at", Value: -1},
-// 			}},
-// 		},
-// 		bson.D{
-// 			{Key: "$skip", Value: int64((page - 1) * limit)},
-// 		},
-// 		bson.D{
-// 			{Key: "$limit", Value: int64(limit)},
-// 		},
-// 	}
+	// Create a MongoDB query to search for players by firstname
+	filter := bson.M{
+		"firstname": bson.M{
+			"$regex":   query,
+			"$options": "i", // Case-insensitive search
+		},
+	}
 
-// 	cursor, err := r.collection.Aggregate(context.TODO(), pipeline)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to execute aggregation pipeline: %w", err)
-// 	}
-// 	defer cursor.Close(context.TODO())
+	// Pagination: Skip (page-1)*limit and limit to `limit` results
+	options := options.Find().
+		SetLimit(int64(limit))
 
-// 	// Decode directly into the Player struct
-// 	var players []models.PlayerList
-// 	if err := cursor.All(context.TODO(), &players); err != nil {
-// 		return nil, fmt.Errorf("failed to decode results: %w", err)
-// 	}
+	// Fetch data with pagination
+	cursor, err := r.collection.Find(context.TODO(), filter, options)
+	if err != nil {
+		return nil, err
+	}
 
-// 	return players, nil
-// }
+	if err = cursor.All(context.TODO(), &players); err != nil {
+		return nil, err
+	}
+
+	return players, nil
+}
 
 func (r *PlayerRepository) GetUserByEmail(email string) (*models.User, error) {
 	var user models.User

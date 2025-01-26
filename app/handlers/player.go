@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fiber-boilerplate/app/service"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -14,51 +15,75 @@ func NewPlayerHandler(playerService *service.PlayerService) PlayerHandler {
 	return PlayerHandler{PlayerService: playerService}
 }
 
-// GetUser returns a user by ID
+// Get players list
 func (h *PlayerHandler) GetPlayersList(c *fiber.Ctx) error {
+	// Extract query parameters with default values
+	page, _ := strconv.Atoi(c.Query("page", "1"))    // Default page: 1
+	limit, _ := strconv.Atoi(c.Query("limit", "20")) // Default limit: 20
 
-	// Default values
-	page := 1
-	limit := 20
+	// Validate page and limit
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20 // Set a maximum limit to prevent excessive data retrieval
+	}
 
-	// Fetch players from the database
-	// The service layer is responsible for interacting with MongoDB
-	players, err := service.PlayerServiceInstance.GetPlayersList(page, limit)
+	// Fetch players and pagination metadata from the database
+	players, pagination, err := service.PlayerServiceInstance.GetPlayersList(page, limit)
 	if err != nil {
-		// Return the error if the user retrieval fails (e.g., user not found or DB error)
+		// Return the error if the player retrieval fails
 		return err.Respond(c)
 	}
 
-	// Send the JSON response back to the client, wrapping the user data in a success object
+	// Send the JSON response back to the client
 	return c.JSON(fiber.Map{
-		"success": true,                          // Indicate the operation was successful
-		"data":    fiber.Map{"players": players}, // Include the sanitized user data
+		"success": true, // Indicate the operation was successful
+		"data": fiber.Map{
+			"players": players, // Include the player data
+			"pagination": fiber.Map{
+				"current_page": pagination.CurrentPage,
+				"next_page":    pagination.NextPage,
+				"prev_page":    pagination.PrevPage,
+				"total_pages":  pagination.TotalPages,
+			},
+		},
 	})
 }
 
-// func GetPlayerDetails(c *fiber.Ctx) error {
-// 	// Retrieve user_id from the context
-// 	userID := c.Locals("user_id").(primitive.ObjectID)
+// Search player by matching name
+func (h *PlayerHandler) SearchPlayers(c *fiber.Ctx) error {
+	// Extract the search query from the request
+	query := c.Query("q", "") // "q" is the query parameter for the search term
 
-// 	// Fetch the user from the database using the validated ObjectID
-// 	// The service layer is responsible for interacting with MongoDB
-// 	user, err := service.UserServiceInstance.GetUser(userID)
-// 	if err != nil {
-// 		// Return the error if the user retrieval fails (e.g., user not found or DB error)
-// 		return err
-// 	}
+	// Validate the search query length
+	if len(query) < 3 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"error":   "Search query must be at least 3 characters long",
+		})
+	}
 
-// 	// Create a sanitized response object excluding sensitive fields (e.g., password)
-// 	response := dtos.UserResponse{
-// 		ID:        user.ID.Hex(),  // Convert the ObjectID to its string representation (Hex format)
-// 		FirstName: user.FirstName, // User's first anme
-// 		LastName:  user.LastName,  // User's last anme
-// 		Email:     user.Email,     // User's email address
-// 	}
+	// Extract pagination parameters with default values
+	limit, _ := strconv.Atoi(c.Query("limit", "20")) // Default limit: 20
 
-// 	// Send the JSON response back to the client, wrapping the user data in a success object
-// 	return c.JSON(fiber.Map{
-// 		"success": true,                        // Indicate the operation was successful
-// 		"data":    fiber.Map{"user": response}, // Include the sanitized user data
-// 	})
-// }
+	// Validate limit
+	if limit < 1 || limit > 100 {
+		limit = 20 // Set a maximum limit to prevent excessive data retrieval
+	}
+
+	// Fetch players matching the search query
+	players, err := service.PlayerServiceInstance.SearchPlayers(query, limit)
+	if err != nil {
+		// Return the error if the search fails
+		return err.Respond(c)
+	}
+
+	// Send the JSON response back to the client
+	return c.JSON(fiber.Map{
+		"success": true, // Indicate the operation was successful
+		"data": fiber.Map{
+			"players": players, // Include the player data
+		},
+	})
+}
