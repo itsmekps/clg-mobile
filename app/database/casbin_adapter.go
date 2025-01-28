@@ -11,17 +11,11 @@ import (
 
 func InitCasbinEnforcer() (*casbin.Enforcer, error) {
 
-	// Load configuration values (e.g., server port) from the configuration file
-	v, err := config.InitConfig()
-	if err != nil {
-		log.Fatal(err) // Exit the application if the configuration fails to load
-	}
-
 	// Initialize MongoDB adapter
 	dbURI := fmt.Sprintf("mongodb+srv://%s:%s@%s/?retryWrites=true&w=majority&appName=CLG",
-		v.GetString("Mongodb_user"),
-		v.GetString("Mongodb_password"),
-		v.GetString("Mongodb_host"),
+		config.GetConfig().MongodbUser,
+		config.GetConfig().MongodbPassword,
+		config.GetConfig().MongodbHost,
 	)
 
 	adapter, err := mongodbadapter.NewAdapter(dbURI)

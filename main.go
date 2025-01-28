@@ -17,6 +17,21 @@ import (
 
 func main() {
 
+	// Configuration parameters
+	configPath := "."    // Path to your configuration directory
+	configFile := ".env" // File name without extension
+	configType := "env"  // File type: "yaml", "json", or "env"
+
+	// Initialize configuration
+	config.InitConfig(configPath, configFile, configType)
+
+	// Initialize zap logger
+	logger.InitLogger(config.GetConfig().AppEnv)
+	// Access the zap logger
+	zapLogger := logger.Log
+	// Flushes buffer, if any
+	defer logger.Log.Sync()
+
 	// Initialize the database connection (e.g., MySQL, MongoDB)
 	db, err := database.InitDB()
 	if err != nil {
@@ -34,12 +49,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	// Initialize zap logger
-	logger.InitZap()
-
-	// Access the zap logger
-	zapLogger := logger.Log
 
 	// Set up the Fiber web server
 	app := bootstrap.InitWebServer()
@@ -73,17 +82,8 @@ func main() {
 }
 
 func startServer(app *fiber.App) {
-	// Initialize a new logger instance for logging server events
-	log := logger.NewLogger()
 
-	// Load configuration values (e.g., server port) from the configuration file
-	v, err := config.InitConfig()
-	if err != nil {
-		log.Fatal(err) // Exit the application if the configuration fails to load
-	}
-
-	// Start the Fiber web server on the specified port from the configuration
-	log.Fatal(app.Listen(":" + v.GetString("Port")))
+	log.Fatal(app.Listen(":" + config.GetConfig().AppPort))
 
 	// Note: Add a deferred cleanup step here if a global database connection needs to be closed
 	// defer db.MySQL.Close()

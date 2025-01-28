@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fiber-boilerplate/app/errors"
 	"fiber-boilerplate/app/logger"
 	"fiber-boilerplate/app/models"
 	"fiber-boilerplate/app/service"
@@ -88,7 +89,8 @@ func (h *NewsHandler) ListNews(c *fiber.Ctx) error {
 			zap.Error(err),
 			// zap.Stack("stack"),
 		)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch news"})
+		return errors.INTERNAL_SERVER_ERROR.Respond(c)
+		// return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch news"})
 	}
 
 	return c.JSON(newsList)

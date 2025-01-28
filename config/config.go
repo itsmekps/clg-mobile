@@ -1,32 +1,51 @@
 package config
 
 import (
+	"log"
+	"path/filepath"
+
 	"github.com/spf13/viper"
 )
 
+// Config struct to map configuration variables
 type Config struct {
-	Port                   string `mapstructure:"PORT"`
-	Mongodb_user           string `mapstructure:"MONGODB_USER"`
-	Mongodb_password       string `mapstructure:"MONGODB_PASSWORD"`
-	Mongodb_host           string `mapstructure:"MONGODB_HOST"`
-	Mongodb_name           string `mapstructure:"MONGODB_NAME"`
-	Mongodb_connection_uri string `mapstructure:"MONGO_CONNECTION_URI"`
+	AppPort              string `mapstructure:"APP_PORT"`
+	AppEnv               string `mapstructure:"APP_ENV"`
+	MongodbUser          string `mapstructure:"MONGODB_USER"`
+	MongodbPassword      string `mapstructure:"MONGODB_PASSWORD"`
+	MongodbHost          string `mapstructure:"MONGODB_HOST"`
+	MongodbName          string `mapstructure:"MONGODB_NAME"`
+	MongodbConnectionURI string `mapstructure:"MONGODB_CONNECTION_URI"`
 }
 
-func InitConfig() (*viper.Viper, error) {
+// Global configuration instance
+var AppConfig Config
+
+// InitConfig initializes the configuration loader
+func InitConfig(configPath, configFile, configType string) error {
 	v := viper.New()
-	v.SetConfigFile(".env")
 
-	err := v.ReadInConfig()
-	if err != nil {
-		return nil, err
+	// Set configuration file name, type, and path
+	v.SetConfigName(configFile)
+	v.SetConfigType(configType)
+	v.AddConfigPath(configPath) // Add custom path
+	v.AddConfigPath(".")        // Add current directory as a fallback
+
+	// Read the configuration file
+	if err := v.ReadInConfig(); err != nil {
+		return err
 	}
 
-	var c Config
-	err = v.Unmarshal(&c)
-	if err != nil {
-		return nil, err
+	// Unmarshal configuration into the struct
+	if err := v.Unmarshal(&AppConfig); err != nil {
+		return err
 	}
 
-	return v, nil
+	log.Printf("Configuration loaded from: %s", filepath.Join(configPath, configFile))
+	return nil
+}
+
+// GetConfig provides access to the loaded configuration
+func GetConfig() Config {
+	return AppConfig
 }

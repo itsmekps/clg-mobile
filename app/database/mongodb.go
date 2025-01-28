@@ -20,12 +20,6 @@ var MongoClient *mongo.Client
 // the client to the global MongoClient variable and returns it.
 func InitMongoDB() *mongo.Client {
 
-	// Load configuration values (e.g., MongoDB user, password, host) from environment or config file.
-	v, err := config.InitConfig()
-	if err != nil {
-		log.Fatal(err) // Exit the application if the configuration fails to load
-	}
-
 	// Create a context with a 10-second timeout for connection operations.
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -33,9 +27,9 @@ func InitMongoDB() *mongo.Client {
 	// Build the MongoDB connection string and create a new client.
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
 		fmt.Sprintf("mongodb+srv://%s:%s@%s/?retryWrites=true&w=majority&appName=CLG",
-			v.GetString("Mongodb_user"),
-			v.GetString("Mongodb_password"),
-			v.GetString("Mongodb_host"),
+			config.GetConfig().MongodbUser,
+			config.GetConfig().MongodbPassword,
+			config.GetConfig().MongodbHost,
 		)),
 	)
 	if err != nil {

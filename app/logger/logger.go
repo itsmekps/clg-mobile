@@ -1,43 +1,58 @@
 package logger
 
 import (
-	"io"
-	"os"
+	"fmt"
 
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-type Logger struct {
-	*logrus.Logger
-}
+var Log *zap.Logger
 
-func NewLogger() *Logger {
-	log := logrus.New()
-	log.SetReportCaller(true)
-
-	// Custom formatter with colors
-	log.Formatter = &logrus.TextFormatter{
-		ForceColors:   true,
-		DisableColors: false,
-		// CallerPrettyfier: func(frame *runtime.Frame) (function string, file string) {
-		// 	filename := path.Base(frame.File)
-		// 	return fmt.Sprintf("%s()", frame.Function), fmt.Sprintf("%s:%d", filename, frame.Line)
-		// },
-		TimestampFormat: "2006-01-02 15:04:05",
-		FullTimestamp:   true,
+func InitLogger(env string) {
+	var config zap.Config
+	fmt.Printf("Initializing logger with environment: %s\n", env)
+	// Use development config for "development" environment
+	if env == "DEV" {
+		config = zap.NewDevelopmentConfig()
+		config.EncoderConfig = zapcore.EncoderConfig{
+			TimeKey:        "ts",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		}
+	} else {
+		// Use production config for other environments
+		config = zap.NewProductionConfig()
+		config.EncoderConfig = zapcore.EncoderConfig{
+			TimeKey:        "ts",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.LowercaseLevelEncoder,
+			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		}
 	}
-	// log.ReportCaller = false
 
-	// Log to file
-	file, err := os.OpenFile("logrus.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	// Set output to standard output
+	config.OutputPaths = []string{"stdout"}
+
+	// Build the logger
+	var err error
+	Log, err = config.Build()
 	if err != nil {
-		log.Fatal(err)
+		panic("Failed to initialize logger: " + err.Error())
 	}
-	mw := io.MultiWriter(os.Stdout, file)
-	log.SetOutput(mw)
-
-	// Set log level
-	log.SetLevel(logrus.DebugLevel)
-
-	return &Logger{log}
 }
