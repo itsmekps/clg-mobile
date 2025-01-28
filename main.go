@@ -35,11 +35,23 @@ func main() {
 		panic(err)
 	}
 
+	// Initialize zap logger
+	logger.InitZap()
+
+	// Access the zap logger
+	zapLogger := logger.Log
+
 	// Set up the Fiber web server
 	app := bootstrap.InitWebServer()
 
 	// Enable Cross-Origin Resource Sharing (CORS) with the specified configuration
 	app.Use(cors.New(config.CORSConfig()))
+
+	// Apply Request ID middleware
+	app.Use(middleware.RequestIDMiddleware())
+
+	// Apply Zap request logger middleware
+	app.Use(middleware.ZapRequestLogger(zapLogger))
 
 	// Apply Auth middleware globally
 	// app.Use(middleware.AuthMiddleware())
@@ -48,7 +60,7 @@ func main() {
 	// app.Use(middleware.CasbinMiddleware(enforcer))
 
 	// Register a logging middleware to log incoming requests
-	app.Use(middleware.LogMiddleware())
+	// app.Use(middleware.LogMiddleware())
 
 	// Register any global or additional middleware
 	middleware.RegisterMiddleware(app)

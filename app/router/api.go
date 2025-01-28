@@ -16,4 +16,6 @@ func ApiRouter(app *fiber.App, enforcer *casbin.Enforcer) {
 	UserRouter(apiGroup)
 	// Register player routes
 	PlayRouter(apiGroup)
+	// Register news routes
+	NewsRouter(apiGroup)
 }
