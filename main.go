@@ -68,14 +68,14 @@ func main() {
 	// Apply Casbin middleware globally
 	// app.Use(middleware.CasbinMiddleware(enforcer))
 
-	// Register a logging middleware to log incoming requests
-	// app.Use(middleware.LogMiddleware())
-
 	// Register any global or additional middleware
 	middleware.RegisterMiddleware(app)
 
-	// Register all API routes
-	router.ApiRouter(app, enforcer)
+	// Register all API routes - v1
+	router.ApiRouterV1(app, enforcer)
+
+	// Register all API routes - v2 - for future use - example v2 in news router
+	// router.ApiRouterV2(app, enforcer)
 
 	// Start the web server
 	startServer(app)
